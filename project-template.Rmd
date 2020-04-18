@@ -1,0 +1,110 @@
+---
+title: "Project title"
+author: "Team members names, tutorial section, and group number"
+date: "March 30, 2020"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+  beamer_presentation:
+    colortheme: orchid
+    fonttheme: structurebold
+    slide_level: 2
+    theme: Pittsburgh
+subtitle: The subtitle of my project
+---
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# echo=FALSE will stop the code chunk from appearing in the knit document
+# warning=FALSE and message=FALSE will stop R messages from appearing in the knit document
+library(tidyverse)
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Load the TPS break in data
+break_and_enters <- read.csv("/Users/milin/Downloads/break_and_enters.csv")
+```
+
+
+## Introduction
+
+A new variable is set as Severity, which sets the successful break and enter cases as serious, and the attempted cases as not so serious. A classification tree is designed to test, for example, the time of the crime, the place of the crime, the type of the crime room and the Severity, so that the police can determine which characteristics of the place are more likely to have serious cases.
+```{r}
+ 
+mydata <- break_and_enters %>% select(-X) %>% mutate(Severity = case_when(offence!= "B&E W'Intent"~"serious",TRUE ~"n serious"))
+
+```
+
+
+## Objectives  
+
+Conduct a classification tree to test, for example, the time of the crime, the place of the crime, the type of the crime room and the Severity, so that the police can determine which characteristics of the place are more likely to have serious cases
+
+## Data Summary  
+
+```{r}
+library(dlookr)
+diagnose(mydata)
+diagnose_numeric(mydata)
+```
+
+## Statistical Methods
+
+
+The data set is divided into training and test sets, the decision tree model is established, and the prediction is made to further evaluate the model.
+```{r}
+library(caret)
+library(rpart)
+library(partykit)
+
+tmp <- createDataPartition(y = mydata$Severity,p=0.8)
+
+train <- mydata[tmp[[1]],]
+test <- mydata[-tmp[[1]],]
+
+tree <- rpart(Severity~., data=train %>% select(-Index,-offence,-event_unique_id))
+plot(as.party(tree), type="simple")
+```
+
+
+Then the evaluation of the model training results is further calculated.
+```{r}
+pre <- predict(tree,train,type = "class")
+
+confusionMatrix(table(train$Severity,pre))
+library(pROC)
+r <- roc(train$Severity,predict(tree,train)[,1])
+r
+plot(r)
+```
+
+
+Calculate the test results about the model.
+```{r}
+pre <- predict(tree,test,type = "class")
+
+confusionMatrix(table(test$Severity,pre))
+library(pROC)
+r <- roc(test$Severity,predict(tree,test)[,1])
+r
+plot(r)
+```
+
+
+## Results
+
+The decision tree about crime data was constructed, and the result of the decision tree was very good. It can be seen from the result that for the training set, Accuracy: 0.9984, 95%ci: (0.998, 0.9988), No Information Rate: 0.8715, p-value [Acc > NIR] : < 2.2e-16, Kappa: 0.9931
+Mcnemar's Test p-value: 5.498e-13, Sensitivity: 1.0000, Specificity: 0.9982, Pos Pred Value: 0.9880, Neg Pred Value: 1.0000, Specificity: 0.1285, Detection Rate: 0.1285, Detection endemic: 0.1300, Balanced Accuracy: 0.9991.
+ 
+For the test set, Accuracy: 0.9985, 95%ci: (0.9974, 0.9992), No Information Rate: 0.8715
+P-value [Acc > NIR] : < 2.2e-16, Kappa: 0.9933, Mcnemar's Test p-value: 0.0008741, Sensitivity: 1.0000, Specificity: 0.9983, Pos Pred Value: 0.9885, Neg Pred Value: 1.0000, Specificity: Detection Rate: 0.1285, Detection Prevalence: 0.1300, Balanced Accuracy: 0.9991       
+
+## Conclusion
+
+
+Plexus output can be seen that the results of reporteddate and occurrencedate the two variables is more important for crime judgment.
+It can be seen from the results of the final model that the constructed decision tree model can better predict different crimes.
+
+ 
